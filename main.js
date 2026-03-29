@@ -7,10 +7,18 @@ const Database = require('./database');
 let db;
 
 function createWindow() {
+  const { screen } = require('electron');
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.workAreaSize;
+  
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    show: true,
+    minWidth: 900,
+    minHeight: 600,
+    x: Math.round((width - 1200) / 2),
+    y: Math.round((height - 800) / 2),
+    show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -18,6 +26,11 @@ function createWindow() {
     }
   });
 
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
+
+  global.mainWindow = mainWindow;
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
   
   // 检查更新
@@ -107,6 +120,34 @@ ipcMain.handle('get-customers', async () => {
 
 ipcMain.handle('add-customer', async (event, customer) => {
   return db ? db.addCustomer(customer) : null;
+});
+
+ipcMain.handle('update-customer', async (event, id, customer) => {
+  return db ? db.updateCustomer(id, customer) : null;
+});
+
+ipcMain.handle('delete-customer', async (event, id) => {
+  return db ? db.deleteCustomer(id) : null;
+});
+
+ipcMain.handle('get-customer-detail', async (event, id) => {
+  return db ? db.getCustomerById(id) : null;
+});
+
+ipcMain.handle('get-contacts', async (event, customerId) => {
+  return db ? db.getContactsByCustomer(customerId) : [];
+});
+
+ipcMain.handle('add-contact', async (event, contact) => {
+  return db ? db.addContact(contact) : null;
+});
+
+ipcMain.handle('update-contact', async (event, id, contact) => {
+  return db ? db.updateContact(id, contact) : null;
+});
+
+ipcMain.handle('delete-contact', async (event, id) => {
+  return db ? db.deleteContact(id) : null;
 });
 
 ipcMain.handle('get-opportunities', async () => {
