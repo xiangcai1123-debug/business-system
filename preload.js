@@ -1,10 +1,18 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// 暴露 API 给渲染进程
 contextBridge.exposeInMainWorld('electronAPI', {
   // 客户管理
   getCustomers: () => ipcRenderer.invoke('get-customers'),
   addCustomer: (data) => ipcRenderer.invoke('add-customer', data),
+  updateCustomer: (id, data) => ipcRenderer.invoke('update-customer', id, data),
+  deleteCustomer: (id) => ipcRenderer.invoke('delete-customer', id),
+  getCustomerDetail: (id) => ipcRenderer.invoke('get-customer-detail', id),
+  
+  // 联系人管理
+  getContacts: (customerId) => ipcRenderer.invoke('get-contacts', customerId),
+  addContact: (data) => ipcRenderer.invoke('add-contact', data),
+  updateContact: (id, data) => ipcRenderer.invoke('update-contact', id, data),
+  deleteContact: (id) => ipcRenderer.invoke('delete-contact', id),
   
   // 商机管理
   getOpportunities: () => ipcRenderer.invoke('get-opportunities'),
@@ -40,5 +48,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // 模板库
   getTemplates: () => ipcRenderer.invoke('get-templates'),
-  addTemplate: (data) => ipcRenderer.invoke('add-template', data)
+  addTemplate: (data) => ipcRenderer.invoke('add-template', data),
+  
+  // 更新
+  checkUpdate: () => ipcRenderer.invoke('check-update'),
+  restartAndUpdate: () => ipcRenderer.invoke('restart-and-update')
 });
