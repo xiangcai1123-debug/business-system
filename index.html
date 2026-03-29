@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>弗里得沃业务管理系统</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: #f5f7fa;
+      color: #333;
+    }
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+    /* 左侧导航 */
+    .sidebar {
+      width: 220px;
+      background: linear-gradient(180deg, #1a73e8 0%, #1557b0 100%);
+      color: white;
+      padding: 20px 0;
+    }
+    .logo {
+      text-align: center;
+      padding: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .nav-menu {
+      list-style: none;
+      padding: 10px 0;
+    }
+    .nav-item {
+      padding: 12px 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: all 0.2s;
+    }
+    .nav-item:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .nav-item.active {
+      background: rgba(255,255,255,0.2);
+      border-left: 3px solid #fff;
+    }
+    .nav-icon {
+      margin-right: 10px;
+      font-size: 16px;
+    }
+    /* 主内容区 */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      background: white;
+      padding: 15px 30px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-size: 20px;
+      color: #1a73e8;
+    }
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-primary {
+      background: #1a73e8;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #1557b0;
+    }
+    .btn-secondary {
+      background: #f5f5f5;
+      color: #666;
+      border: 1px solid #ddd;
+    }
+    /* 内容区 */
+    .content {
+      flex: 1;
+      padding: 20px 30px;
+      overflow-y: auto;
+    }
+    /* 统计卡片 */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .stat-card .label {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .stat-card .value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #1a73e8;
+    }
+    /* 表格 */
+    .table-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    .toolbar {
+      padding: 15px 20px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .search-box {
+      display: flex;
+      gap: 10px;
+    }
+    .search-box input {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      width: 250px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    th {
+      background: #f9fafb;
+      font-weight: 600;
+      color: #555;
+      font-size: 13px;
+    }
+    td {
+      font-size: 14px;
+    }
+    tr:hover {
+      background: #f9fafb;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    .status-pending { background: #fff3e0; color: #f57c00; }
+    .status-active { background: #e8f5e9; color: #43a047; }
+    .status-completed { background: #e3f2fd; color: #1a73e8; }
+    /* 模态框 */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal.show {
+      display: flex;
+    }
+    .modal-content {
+      background: white;
+      border-radius: 8px;
+      width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h3 {
+      font-size: 18px;
+    }
+    .modal-close {
+      font-size: 24px;
+      cursor: pointer;
+      color: #999;
+    }
+    .modal-body {
+      padding: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #555;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .form-group textarea {
+      min-height: 80px;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .modal-footer {
+      padding: 15px 20px;
+      border-top: 1px solid #f0f0f0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 左侧导航 -->
+    <div class="sidebar">
+      <div class="logo">🧡 弗里得沃<br>业务管理系统</div>
+      <ul class="nav-menu">
+        <li class="nav-item active" data-module="dashboard"><span class="nav-icon">📊</span>工作台</li>
+        <li class="nav-item" data-module="customers"><span class="nav-icon">👥</span>客户管理</li>
+        <li class="nav-item" data-module="opportunities"><span class="nav-icon">🎯</span>商机管理</li>
+        <li class="nav-item" data-module="quotations"><span class="nav-icon">💰</span>询报价</li>
+        <li class="nav-item" data-module="orders"><span class="nav-icon">📋</span>订单管理</li>
+        <li class="nav-item" data-module="followups"><span class="nav-icon">📝</span>跟单管理</li>
+        <li class="nav-item" data-module="shipments"><span class="nav-icon">🚢</span>发货单证</li>
+        <li class="nav-item" data-module="transactions"><span class="nav-icon">💵</span>资金管理</li>
+        <li class="nav-item" data-module="suppliers"><span class="nav-icon">🏭</span>供应商管理</li>
+        <li class="nav-item" data-module="purchases"><span class="nav-icon">🛒</span>采购管理</li>
+        <li class="nav-item" data-module="templates"><span class="nav-icon">📁</span>模板库</li>
+      </ul>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main">
+      <div class="header">
+        <h1 id="pageTitle">工作台</h1>
+        <div class="header-actions">
+          <button class="btn btn-secondary" onclick="refreshData()">🔄 刷新</button>
+          <button class="btn btn-primary" onclick="showAddModal()">+ 新增</button>
+        </div>
+      </div>
+
+      <div class="content" id="contentArea">
+        <!-- 内容动态加载 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 模态框 -->
+  <div class="modal" id="addModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">新增</h3>
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- 表单动态生成 -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveData()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 当前模块
+    let currentModule = 'dashboard';
+    let currentData = [];
+
+    // 模块配置
+    const moduleConfig = {
+      dashboard: {
+        title: '工作台',
+        fields: [],
+        stats: ['customers', 'opportunities', 'orders', 'quotations']
+      },
+      customers: {
+        title: '客户管理',
+        fields: [
+          { name: 'customer_code', label: '客户编号', type: 'text' },
+          { name: 'name', label: '客户名称', type: 'text' },
+          { name: 'contact', label: '联系人', type: 'text' },
+          { name: 'phone', label: '联系电话', type: 'text' },
+          { name: 'email', label: '邮箱', type: 'email' },
+          { name: 'address', label: '地址', type: 'text' },
+          { name: 'industry', label: '行业', type: 'text' },
+          { name: 'customer_type', label: '客户类型', type: 'select', options: ['潜在客户', '成交客户', '长期合作'] },
+          { name: 'level', label: '等级', type: 'select', options: ['A', 'B', 'C', 'D'] },
+          { name: 'source', label: '来源', type: 'text' },
+          { name: 'follow_up', label: '跟进人', type: 'text' }
+        ],
+        columns: ['customer_code', 'name', 'contact', 'phone', 'industry', 'customer_type', 'level', 'follow_up']
+      },
+      opportunities: {
+        title: '商机管理',
+        fields: [
+          { name: 'opportunity_code', label: '商机编号', type: 'text' },
+          { name: 'customer_id', label: '客户', type: 'select', options: [] },
+          { name: 'product', label: '产品/服务', type: 'text' },
+          { name: 'amount', label: '商机金额', type: 'number' },
+          { name: 'expected_date', label: '预计成交日期', type: 'date' },
+          { name: 'stage', label: '商机阶段', type: 'select', options: ['线索', '初步接触', '需求确认', '方案报价', '谈判', '成交', '输单'] },
+          { name: 'follow_up', label: '跟进人', type: 'text' },
+          { name: 'win_rate', label: '胜率(%)', type: 'number' },
+          { name: 'competitor', label: '竞争对手', type: 'text' },
+          { name: 'notes', label: '备注', type: 'textarea' }
+        ],
+        columns: ['opportunity_code', 'customer_id', 'product', 'amount', 'stage', 'win_rate', 'follow_up', 'expected_date']
+      },
+      quotations: {
+        title: '询报价系统',
+        fields: [
+          { name: 'quotation_code', label: '报价编号', type: 'text' },
+          { name: 'customer_id', label: '客户', type: 'select', options: [] },
+          { name: 'contact', label: '联系人', type: 'text' },
+          { name: 'products', label: '产品明细', type: 'textarea' },
+          { name: 'supplier_price', label: '供应商报价', type: 'number' },
+          { name: 'cost_price', label: '成本价', type: 'number' },
+          { name: 'quote_price', label: '报价金额', type: 'number' },
+          { name: 'profit_rate', label: '利润率(%)', type: 'number' },
+          { name: 'currency', label: '币种', type: 'select', options: ['CNY', 'USD', 'EUR'] },
+          { name: 'exchange_rate', label: '汇率', type: 'number' },
+          { name: 'quote_date', label: '报价日期', type: 'date' },
+          { name: 'valid_date', label: '有效期至', type: 'date' },
+          { name: 'status', label: '状态', type: 'select', options: ['待报价', '已报价', '客户确认', '过期'] },
+          { name: 'notes', label: '备注', type: 'textarea' }
+        ],
+        columns: ['quotation_code', 'customer_id', 'products', 'quote_price', 'profit_rate', 'currency', 'status', 'quote_date']
+      },
+      orders: {
+        title: '订单管理',
+        fields: [
+          { name: 'order_code', label: '订单编号', type: 'text' },
+          { name: 'contract_no', label: '合同号', type: 'text' },
+          { name: 'customer_id', label: '客户', type: 'select', options: [] },
+          { name: 'products', label: '产品明细', type: 'textarea' },
+          { name: 'unit_price', label: '单价', type: 'number' },
+          { name: 'quantity', label: '数量', type: 'number' },
+          { name: 'total_amount', label: '总金额', type: 'number' },
+          { name: 'currency', label: '币种', type: 'select', options: ['CNY', 'USD', 'EUR'] },
+          { name: 'status', label: '订单状态', type: 'select', options: ['已确认', '生产中', '待发货', '已发货', '已完成'] },
+          { name: 'sign_date', label: '签订日期', type: 'date' },
+          { name: 'delivery_date', label: '交货日期', type: 'date' },
+          { name: 'sales_person', label: '销售负责人', type: 'text' }
+        ],
+        columns: ['order_code', 'contract_no', 'customer_id', 'total_amount', 'currency', 'status', 'sign_date', 'delivery_date']
+      },
+      followups: {
+        title: '跟单管理',
+        fields: [
+          { name: 'followup_code', label: '跟单编号', type: 'text' },
+          { name: 'customer_id', label: '客户', type: 'select', options: [] },
+          { name: 'opportunity_id', label: '商机', type: 'select', options: [] },
+          { name: 'order_id', label: '订单', type: 'select', options: [] },
+          { name: 'type', label: '跟单类型', type: 'select', options: ['电话', '邮件', '拜访', '会议'] },
+          { name: 'content', label: '跟单内容', type: 'textarea' },
+          { name: 'follow_up', label: '跟进人', type: 'text' },
+          { name: 'next_date', label: '下次跟进日期', type: 'date' },
+          { name: 'status', label: '状态', type: 'select', options: ['进行中', '已完成'] }
+        ],
+        columns: ['followup_code', 'customer_id', 'type', 'content', 'follow_up', 'next_date', 'status']
+      },
+      shipments: {
+        title: '发货单证管理',
+        fields: [
+          { name: 'shipment_code', label: '发货编号', type: 'text' },
+          { name: 'order_id', label: '订单', type: 'select', options: [] },
+          { name: 'customer_name', label: '客户名称', type: 'text' },
+          { name: 'shipment_date', label: '发货日期', type: 'date' },
+          { name: 'container_no', label: '柜号/箱号', type: 'text' },
+          { name: 'shipping_method', label: '物流方式', type: 'select', options: ['海运', '空运', '快递'] },
+          { name: 'tracking_no', label: '物流单号', type: 'text' },
+          { name: 'expected_arrival', label: '预计到港日期', type: 'date' },
+          { name: 'invoice_no', label: '发票号', type: 'text' },
+          { name: 'packing_list_no', label: '装箱单号', type: 'text' },
+          { name: 'bill_of_lading_no', label: '提单号', type: 'text' },
+          { name: 'customs_status', label: '报关状态', type: 'select', options: ['待报关', '已报关', '清关中'] },
+          { name: 'notes', label: '备注', type: 'textarea' }
+        ],
+        columns: ['shipment_code', 'order_id', 'customer_name', 'shipping_method', 'shipment_date', 'customs_status']
+      },
+      transactions: {
+        title: '资金管理',
+        fields: [
+          { name: 'transaction_code', label: '流水编号', type: 'text' },
+          { name: 'type', label: '类型', type: 'select', options: ['收入', '支出'] },
+          { name: 'order_id', label: '关联订单', type: 'select', options: [] },
+          { name: 'customer_id', label: '客户', type: 'select', options: [] },
+          { name: 'supplier_id', label: '供应商', type: 'select', options: [] },
+          { name: 'amount', label: '金额', type: 'number' },
+          { name: 'currency', label: '币种', type: 'select', options: ['CNY', 'USD', 'EUR'] },
+          { name: 'payment_method', label: '付款方式', type: 'select', options: ['电汇', '信用证', '承兑', '现金'] },
+          { name: 'plan_date', label: '计划日期', type: 'date' },
+          { name: 'actual_date', label: '实际日期', type: 'date' },
+          { name: 'status', label: '收款状态', type: 'select', options: ['未到账', '部分到账', '已到账'] },
+          { name: 'reconcile_status', label: '核销状态', type: 'select', options: ['已核销', '未核销'] },
+          { name: 'notes', label: '备注', type: 'textarea' }
+        ],
+        columns: ['transaction_code', 'type', 'customer_id', 'amount', 'currency', 'payment_method', 'plan_date', 'status']
+      },
+      suppliers: {
+        title: '供应商管理',
+        fields: [
+          { name: 'supplier_code', label: '供应商编号', type: 'text' },
+          { name: 'name', label: '供应商名称', type: 'text' },
+          { name: 'contact', label: '联系人', type: 'text' },
+          { name: 'phone', label: '联系电话', type: 'text' },
+          { name: 'email', label: '邮箱', type: 'email' },
+          { name: 'address', label: '地址', type: 'text' },
+          { name: 'main_products', label: '主营产品', type: 'text' },
+          { name: 'certifications', label: '资质证书', type: 'text' },
+          { name: 'level', label: '评级', type: 'select', options: ['A', 'B', 'C', 'D'] },
+          { name: 'cooperation_years', label: '合作年限', type: 'number' },
+          { name: 'rating', label: '评分', type: 'number' },
+          { name: 'notes', label: '备注', type: 'textarea' }
+        ],
+        columns: ['supplier_code', 'name', 'contact', 'phone', 'main_products', 'level', 'cooperation_years']
+      },
+      purchases: {
+        title: '采购管理',
+        fields: [
+          { name: 'purchase_code', label: '采购编号', type: 'text' },
+          { name: 'project_id', label: '关联项目', type: 'select', options: [] },
+          { name: 'supplier_id', label: '供应商', type: 'select', options: [] },
+          { name: 'products', label: '采购明细', type: 'textarea' },
+          { name: 'quantity', label: '数量', type: 'number' },
+          { name: 'unit_price', label: '单价', type: 'number' },
+          { name: 'total_amount', label: '总金额', type: 'number' },
+          { name: 'status', label: '采购状态', type: 'select', options: ['待下单', '已下单', '待入库', '已入库', '已完成'] },
+          { name: 'order_date', label: '下单日期', type: 'date' },
+          { name: 'expected_arrival', label: '预计到货日期', type: 'date' },
+          { name: 'actual_arrival', label: '实际到货日期', type: 'date' },
+          { name: 'quality_check', label: '质检结果', type: 'text' },
+          { name: 'payment_status', label: '付款状态', type: 'select', options: ['未付', '部分付', '已付'] },
+          { name: 'notes', label: '备注', type: 'textarea' }
+        ],
+        columns: ['purchase_code', 'supplier_id', 'products', 'total_amount', 'status', 'order_date', 'expected_arrival']
+      },
+      templates: {
+        title: '模板库',
+        fields: [
+          { name: 'template_code', label: '模板编号', type: 'text' },
+          { name: 'name', label: '模板名称', type: 'text' },
+          { name: 'category', label: '分类', type: 'select', options: ['商务模板', '技术模板', '财务模板', '单证模板', '邮件模板'] },
+          { name: 'file_format', label: '文件格式', type: 'select', options: ['Word', 'Excel', 'PDF'] },
+          { name: 'scope', label: '适用范围', type: 'text' },
+          { name: 'version', label: '版本号', type: 'text' },
+          { name: 'uploader', label: '上传人', type: 'text' },
+          { name: 'related_business', label: '关联业务', type: 'text' },
+          { name: 'notes', label: '备注', type: 'textarea' }
+        ],
+        columns: ['template_code', 'name', 'category', 'file_format', 'scope', 'version', 'uploader']
+      }
+    };
+
+    // 导航点击
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        currentModule = item.dataset.module;
+        document.getElementById('pageTitle').textContent = moduleConfig[currentModule].title;
+        loadModuleData();
+      });
+    });
+
+    // 加载模块数据
+    async function loadModuleData() {
+      if (currentModule === 'dashboard') {
+        renderDashboard();
+        return;
+      }
+
+      const config = moduleConfig[currentModule];
+      try {
+        const data = await window.electronAPI[`get${capitalize(currentModule)}`]();
+        currentData = data;
+        renderTable(config, data);
+      } catch (e) {
+        console.error('加载数据失败:', e);
+      }
+    }
+
+    // 首字母大写
+    function capitalize(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // 渲染工作台
+    async function renderDashboard() {
+      const stats = {};
+      try {
+        const modules = ['customers', 'opportunities', 'orders', 'quotations'];
+        for (const m of modules) {
+          const data = await window.electronAPI[`get${capitalize(m)}`]();
+          stats[m] = data.length;
+        }
+      } catch (e) {}
+
+      const html = `
+        <div class="stats">
+          <div class="stat-card">
+            <div class="label">客户总数</div>
+            <div class="value">${stats.customers || 0}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">商机数量</div>
+            <div class="value">${stats.opportunities || 0}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">订单数量</div>
+            <div class="value">${stats.orders || 0}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">报价数量</div>
+            <div class="value">${stats.quotations || 0}</div>
+          </div>
+        </div>
+        <div class="table-container">
+          <div class="toolbar">
+            <span>📌 快速操作</span>
+          </div>
+          <div style="padding: 20px;">
+            <p style="color: #666; margin-bottom: 15px;">欢迎使用弗里得沃业务管理系统！</p>
+            <p style="color: #666;">点击左侧导航可以进入各个模块进行管理。</p>
+          </div>
+        </div>
+      `;
+      document.getElementById('contentArea').innerHTML = html;
+    }
+
+    // 渲染表格
+    function renderTable(config, data) {
+      if (!data || data.length === 0) {
+        document.getElementById('contentArea').innerHTML = `
+          <div class="table-container">
+            <div class="toolbar">
+              <span>暂无数据</span>
+            </div>
+            <div style="padding: 40px; text-align: center; color: #999;">
+              暂无数据，点击右上角"新增"按钮添加
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const columns = config.columns;
+      let thead = '<thead><tr>';
+      columns.forEach(col => {
+        thead += `<th>${col.replace('_', ' ')}</th>`;
+      });
+      thead += '</tr></thead>';
+
+      let tbody = '<tbody>';
+      data.forEach(row => {
+        tbody += '<tr>';
+        columns.forEach(col => {
+          let val = row[col] || '-';
+          if (col === 'status' || col === 'stage' || col === 'customer_type') {
+            tbody += `<td><span class="status-badge status-active">${val}</span></td>`;
+          } else {
+            tbody += `<td>${val}</td>`;
+          }
+        });
+        tbody += '</tr>';
+      });
+      tbody += '</tbody>';
+
+      document.getElementById('contentArea').innerHTML = `
+        <div class="table-container">
+          <div class="toolbar">
+            <div class="search-box">
+              <input type="text" placeholder="搜索..." onkeyup="filterData(this.value)">
+            </div>
+            <span>共 ${data.length} 条</span>
+          </div>
+          <table>${thead}${tbody}</table>
+        </div>
+      `;
+    }
+
+    // 搜索过滤
+    function filterData(keyword) {
+      // 简单过滤实现
+    }
+
+    // 显示新增模态框
+    function showAddModal() {
+      if (currentModule === 'dashboard') return;
+      
+      const config = moduleConfig[currentModule];
+      document.getElementById('modalTitle').textContent = `新增${config.title}`;
+      
+      let formHtml = '';
+      config.fields.forEach(field => {
+        formHtml += `<div class="form-group">
+          <label>${field.label}</label>`;
+        
+        if (field.type === 'select') {
+          formHtml += `<select name="${field.name}">
+            <option value="">请选择</option>
+            ${field.options.map(o => `<option value="${o}">${o}</option>`).join('')}
+          </select>`;
+        } else if (field.type === 'textarea') {
+          formHtml += `<textarea name="${field.name}"></textarea>`;
+        } else {
+          formHtml += `<input type="${field.type}" name="${field.name}">`;
+        }
+        
+        formHtml += '</div>';
+      });
+      
+      document.getElementById('modalBody').innerHTML = formHtml;
+      document.getElementById('addModal').classList.add('show');
+    }
+
+    // 关闭模态框
+    function closeModal() {
+      document.getElementById('addModal').classList.remove('show');
+    }
+
+    // 保存数据
+    async function saveData() {
+      const form = document.getElementById('modalBody');
+      const formData = {};
+      form.querySelectorAll('input, select, textarea').forEach(el => {
+        formData[el.name] = el.value;
+      });
+
+      try {
+        await window.electronAPI[`add${capitalize(currentModule)}`](formData);
+        closeModal();
+        loadModuleData();
+      } catch (e) {
+        alert('保存失败: ' + e.message);
+      }
+    }
+
+    // 刷新数据
+    function refreshData() {
+      loadModuleData();
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      loadModuleData();
+    });
+
+    // 暴露 API 给 Electron
+    if (typeof window !== 'undefined') {
+      window.electronAPI = {
+        getCustomers: () => fetch('/api/customers').then(r => r.json()),
+        getOpportunities: () => fetch('/api/opportunities').then(r => r.json()),
+        getQuotations: () => fetch('/api/quotations').then(r => r.json()),
+        getOrders: () => fetch('/api/orders').then(r => r.json()),
+        getFollowups: () => fetch('/api/followups').then(r => r.json()),
+        getShipments: () => fetch('/api/shipments').then(r => r.json()),
+        getTransactions: () => fetch('/api/transactions').then(r => r.json()),
+        getSuppliers: () => fetch('/api/suppliers').then(r => r.json()),
+        getPurchases: () => fetch('/api/purchases').then(r => r.json()),
+        getTemplates: () => fetch('/api/templates').then(r => r.json())
+      };
+    }
+  </script>
+</body>
+</html>
