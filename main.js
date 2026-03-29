@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const { autoUpdater } = require('electron-updater');
 
 const Database = require('./database');
 
@@ -19,23 +20,55 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
   
-  mainWindow.webContents.on('did-finish-load', () => {
-    console.log('页面加载完成');
-  });
-  
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.error('页面加载失败:', errorCode, errorDescription);
-  });
-
-  // 调试用：打开开发者工具
-  // mainWindow.webContents.openDevTools();
+  // 检查更新
+  if (app.isPackaged) {
+    autoUpdater.checkForUpdatesAndNotify();
+  }
 }
+
+// 配置自动更新
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+autoUpdater.on('checking-for-update', () => {
+  console.log('检查更新中...');
+});
+
+autoUpdater.on('update-available', (info) => {
+  console.log('发现新版本:', info.version);
+  if (db) {
+    db.addLog('系统更新', `发现新版本 ${info.version}，正在下载...`);
+  }
+});
+
+autoUpdater.on('update-not-available', () => {
+  console.log('已是最新版本');
+});
+
+autoUpdater.on('download-progress', (progress) => {
+  console.log(`下载进度: ${progress.percent.toFixed(1)}%`);
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('下载完成，将在重启后安装');
+  if (db) {
+    db.addLog('系统更新', `版本 ${info.version} 下载完成，重启后将自动安装`);
+  }
+  // 通知渲染进程
+  if (global.mainWindow) {
+    global.mainWindow.webContents.send('update-downloaded');
+  }
+});
+
+autoUpdater.on('error', (err) => {
+  console.error('更新错误:', err);
+});
 
 app.commandLine.appendSwitch('no-sandbox');
 app.commandLine.appendSwitch('disable-gpu');
 
 app.whenReady().then(async () => {
-  console.log('应用启动中...');
+  console.log('应用启动中... v1.0.0');
   
   try {
     db = new Database();
@@ -57,6 +90,13 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+// 退出并更新
+app.on('before-quit', () => {
+  if (autoUpdater && autoUpdater.isUpdateDownloaded) {
+    autoUpdater.quitAndInstall();
   }
 });
 
@@ -139,6 +179,19 @@ ipcMain.handle('get-templates', async () => {
 
 ipcMain.handle('add-template', async (event, template) => {
   return db ? db.addTemplate(template) : null;
+});
+
+// 检查更新
+ipcMain.handle('check-update', async () => {
+  if (app.isPackaged) {
+    return autoUpdater.checkForUpdates();
+  }
+  return null;
+});
+
+// 重启更新
+ipcMain.handle('restart-and-update', () => {
+  autoUpdater.quitAndInstall();
 });
 
 process.on('exit', () => {
