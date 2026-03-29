@@ -6,9 +6,15 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "build": "electron-builder"
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "publish": "electron-builder --mac --publish"
   },
-  "keywords": ["business", "crm", "management"],
+  "keywords": [
+    "business",
+    "crm",
+    "management"
+  ],
   "author": "弗里得沃",
   "license": "ISC",
   "type": "commonjs",
@@ -17,6 +23,7 @@
     "electron-builder": "^25.1.8"
   },
   "dependencies": {
+    "electron-updater": "^6.8.3",
     "sql.js": "^1.12.0"
   },
   "build": {
@@ -26,17 +33,31 @@
       "output": "dist"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.business",
       "icon": "assets/icon.icns"
     },
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "assets/icon.ico"
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "icon": "assets/icon.png"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "xiangcai1123-debug",
+        "repo": "business-system"
+      }
+    ],
     "files": [
       "main.js",
       "preload.js",
