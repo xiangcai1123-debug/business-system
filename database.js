@@ -1,14 +1,19 @@
 const initSqlJs = require('sql.js');
 const path = require('path');
 const fs = require('fs');
+const { app } = require('electron');
 
 class Database {
   constructor() {
     this.db = null;
-    this.dbPath = path.join(__dirname, 'data', 'business.db');
+    this.dbPath = null;
   }
 
   async init() {
+    // 使用 Electron 的用户数据目录
+    const userDataPath = app.getPath('userData');
+    this.dbPath = path.join(userDataPath, 'data', 'business.db');
+
     const dataDir = path.dirname(this.dbPath);
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
@@ -272,6 +277,7 @@ class Database {
 
   // 通用查询
   query(sql) {
+    if (!this.db) return [];
     const stmt = this.db.prepare(sql);
     const results = [];
     while (stmt.step()) {
@@ -283,6 +289,7 @@ class Database {
 
   // 通用插入
   insert(sql, params = []) {
+    if (!this.db) return { id: null };
     this.db.run(sql, params);
     this.save();
     return { id: this.db.exec("SELECT last_insert_rowid()")[0].values[0][0] };
@@ -474,6 +481,7 @@ class Database {
     if (this.db) {
       this.save();
       this.db.close();
+      this.db = null;
     }
   }
 }
