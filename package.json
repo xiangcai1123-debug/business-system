@@ -8,7 +8,7 @@
     "dev": "electron .",
     "build": "electron-builder",
     "build:mac": "electron-builder --mac",
-    "publish": "electron-builder --mac --publish"
+    "publish": "onTagOrDraft"
   },
   "keywords": [
     "business",
