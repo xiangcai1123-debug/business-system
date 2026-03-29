@@ -10,7 +10,6 @@ class Database {
   }
 
   async init() {
-    // 使用 Electron 的用户数据目录
     const userDataPath = app.getPath('userData');
     this.dbPath = path.join(userDataPath, 'data', 'business.db');
 
@@ -21,7 +20,6 @@ class Database {
 
     const SQL = await initSqlJs();
 
-    // 尝试加载已有数据库
     if (fs.existsSync(this.dbPath)) {
       const buffer = fs.readFileSync(this.dbPath);
       this.db = new SQL.Database(buffer);
@@ -41,27 +39,38 @@ class Database {
   }
 
   createTables() {
-    // 1. 客户管理
+    // 客户管理表
     this.db.run(`
       CREATE TABLE IF NOT EXISTS customers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         customer_code TEXT,
         name TEXT NOT NULL,
-        contact TEXT,
-        phone TEXT,
-        email TEXT,
-        address TEXT,
+        country TEXT,
         industry TEXT,
-        customer_type TEXT,
-        level TEXT,
-        source TEXT,
-        follow_up TEXT,
+        level TEXT DEFAULT 'C',
+        notes TEXT,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now'))
       )
     `);
 
-    // 2. 商机管理
+    // 客户联系人表
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS contacts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER,
+        name TEXT NOT NULL,
+        position TEXT,
+        phone TEXT,
+        email TEXT,
+        is_primary INTEGER DEFAULT 0,
+        notes TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 商机管理
     this.db.run(`
       CREATE TABLE IF NOT EXISTS opportunities (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,11 +86,11 @@ class Database {
         notes TEXT,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (customer_id) REFERENCES customers(id)
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
       )
     `);
 
-    // 3. 询报价系统
+    // 询报价系统
     this.db.run(`
       CREATE TABLE IF NOT EXISTS quotations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,12 +111,12 @@ class Database {
         notes TEXT,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (customer_id) REFERENCES customers(id),
-        FOREIGN KEY (opportunity_id) REFERENCES opportunities(id)
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+        FOREIGN KEY (opportunity_id) REFERENCES opportunities(id) ON DELETE SET NULL
       )
     `);
 
-    // 4. 订单管理
+    // 订单管理
     this.db.run(`
       CREATE TABLE IF NOT EXISTS orders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -128,13 +137,13 @@ class Database {
         sales_person TEXT,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (customer_id) REFERENCES customers(id),
-        FOREIGN KEY (quotation_id) REFERENCES quotations(id),
-        FOREIGN KEY (opportunity_id) REFERENCES opportunities(id)
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+        FOREIGN KEY (quotation_id) REFERENCES quotations(id) ON DELETE SET NULL,
+        FOREIGN KEY (opportunity_id) REFERENCES opportunities(id) ON DELETE SET NULL
       )
     `);
 
-    // 5. 跟单管理
+    // 跟单管理
     this.db.run(`
       CREATE TABLE IF NOT EXISTS followups (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -149,13 +158,13 @@ class Database {
         status TEXT DEFAULT '进行中',
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (customer_id) REFERENCES customers(id),
-        FOREIGN KEY (opportunity_id) REFERENCES opportunities(id),
-        FOREIGN KEY (order_id) REFERENCES orders(id)
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+        FOREIGN KEY (opportunity_id) REFERENCES opportunities(id) ON DELETE SET NULL,
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL
       )
     `);
 
-    // 6. 发货单证管理
+    // 发货单证管理
     this.db.run(`
       CREATE TABLE IF NOT EXISTS shipments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -174,11 +183,11 @@ class Database {
         notes TEXT,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (order_id) REFERENCES orders(id)
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL
       )
     `);
 
-    // 7. 资金管理
+    // 资金管理
     this.db.run(`
       CREATE TABLE IF NOT EXISTS transactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -199,14 +208,13 @@ class Database {
         notes TEXT,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (contract_id) REFERENCES orders(id),
-        FOREIGN KEY (order_id) REFERENCES orders(id),
-        FOREIGN KEY (customer_id) REFERENCES customers(id),
-        FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+        FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
       )
     `);
 
-    // 8. 供应商管理
+    // 供应商管理
     this.db.run(`
       CREATE TABLE IF NOT EXISTS suppliers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -227,7 +235,7 @@ class Database {
       )
     `);
 
-    // 9. 采购管理
+    // 采购管理
     this.db.run(`
       CREATE TABLE IF NOT EXISTS purchases (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -247,12 +255,12 @@ class Database {
         notes TEXT,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
-        FOREIGN KEY (project_id) REFERENCES orders(id)
+        FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL,
+        FOREIGN KEY (project_id) REFERENCES orders(id) ON DELETE SET NULL
       )
     `);
 
-    // 10. 模板库
+    // 模板库
     this.db.run(`
       CREATE TABLE IF NOT EXISTS templates (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -275,24 +283,44 @@ class Database {
     console.log('数据库表创建完成');
   }
 
+  // 自动生成客户编号：FW + 年份 + 4位数字
+  generateCustomerCode() {
+    const year = new Date().getFullYear();
+    const result = this.db.exec("SELECT COUNT(*) as cnt FROM customers WHERE customer_code LIKE 'FW" + year + "%'");
+    const count = result.length > 0 ? result[0].values[0][0] : 0;
+    const num = (count + 1).toString().padStart(4, '0');
+    return `FW${year}${num}`;
+  }
+
   // 通用查询
   query(sql) {
     if (!this.db) return [];
-    const stmt = this.db.prepare(sql);
-    const results = [];
-    while (stmt.step()) {
-      results.push(stmt.getAsObject());
+    try {
+      const stmt = this.db.prepare(sql);
+      const results = [];
+      while (stmt.step()) {
+        results.push(stmt.getAsObject());
+      }
+      stmt.free();
+      return results;
+    } catch (e) {
+      console.error('Query error:', e);
+      return [];
     }
-    stmt.free();
-    return results;
   }
 
   // 通用插入
   insert(sql, params = []) {
     if (!this.db) return { id: null };
-    this.db.run(sql, params);
-    this.save();
-    return { id: this.db.exec("SELECT last_insert_rowid()")[0].values[0][0] };
+    try {
+      this.db.run(sql, params);
+      this.save();
+      const result = this.db.exec("SELECT last_insert_rowid()");
+      return { id: result.length > 0 ? result[0].values[0][0] : null };
+    } catch (e) {
+      console.error('Insert error:', e);
+      return { id: null };
+    }
   }
 
   // ============ 客户管理 ============
@@ -301,14 +329,75 @@ class Database {
   }
 
   addCustomer(customer) {
-    const sql = `INSERT INTO customers (customer_code, name, contact, phone, email, address, industry, customer_type, level, source, follow_up)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-    return this.insert(sql, [
-      customer.customer_code || '', customer.name, customer.contact || '',
-      customer.phone || '', customer.email || '', customer.address || '',
-      customer.industry || '', customer.customer_type || '',
-      customer.level || '', customer.source || '', customer.follow_up || ''
+    const code = this.generateCustomerCode();
+    const sql = `INSERT INTO customers (customer_code, name, country, industry, level, notes)
+      VALUES (?, ?, ?, ?, ?, ?)`;
+    const result = this.insert(sql, [
+      code, customer.name, customer.country || '', 
+      customer.industry || '', customer.level || 'C', customer.notes || ''
     ]);
+    
+    // 如果有初始联系人，一并添加
+    if (customer.contacts && customer.contacts.length > 0) {
+      for (const contact of customer.contacts) {
+        if (contact.name) {
+          this.addContact({ ...contact, customer_id: result.id, is_primary: 1 });
+        }
+      }
+    }
+    return result;
+  }
+
+  updateCustomer(id, customer) {
+    const sql = `UPDATE customers SET name=?, country=?, industry=?, level=?, notes=?, updated_at=datetime('now')
+      WHERE id=?`;
+    this.insert(sql, [customer.name, customer.country || '', customer.industry || '', 
+      customer.level || 'C', customer.notes || '', id]);
+    return { id };
+  }
+
+  deleteCustomer(id) {
+    // 先删除关联的联系人
+    this.insert('DELETE FROM contacts WHERE customer_id=?', [id]);
+    this.insert('DELETE FROM customers WHERE id=?', [id]);
+    return { success: true };
+  }
+
+  getCustomerById(id) {
+    const customers = this.query(`SELECT * FROM customers WHERE id=${id}`);
+    if (customers.length > 0) {
+      const contacts = this.getContactsByCustomer(id);
+      return { ...customers[0], contacts };
+    }
+    return null;
+  }
+
+  // ============ 联系人管理 ============
+  getContactsByCustomer(customerId) {
+    return this.query(`SELECT * FROM contacts WHERE customer_id=${customerId} ORDER BY is_primary DESC, id ASC`);
+  }
+
+  addContact(contact) {
+    const sql = `INSERT INTO contacts (customer_id, name, position, phone, email, is_primary, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    return this.insert(sql, [
+      contact.customer_id, contact.name, contact.position || '',
+      contact.phone || '', contact.email || '', 
+      contact.is_primary ? 1 : 0, contact.notes || ''
+    ]);
+  }
+
+  updateContact(id, contact) {
+    const sql = `UPDATE contacts SET name=?, position=?, phone=?, email=?, is_primary=?, notes=?
+      WHERE id=?`;
+    this.insert(sql, [contact.name, contact.position || '', contact.phone || '',
+      contact.email || '', contact.is_primary ? 1 : 0, contact.notes || '', id]);
+    return { id };
+  }
+
+  deleteContact(id) {
+    this.insert('DELETE FROM contacts WHERE id=?', [id]);
+    return { success: true };
   }
 
   // ============ 商机管理 ============
